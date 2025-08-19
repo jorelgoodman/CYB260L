@@ -1,12 +1,12 @@
-# Description: <your description>
-# Revision: <number>
-# Date: <date>
+# Description of what this change includes
+# Revision number
+# Date
 
 AWSTemplateFormatVersion: "2010-09-09"
 Description: Amazon Elastic Compute Cloud (EC2) Template
 Parameters:
   LatestAmiId:
-    Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
+    Type : "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
     Default: "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
 Resources:
   Ec2Instance:
@@ -19,8 +19,8 @@ Resources:
         - AssociatePublicIpAddress: "true"
           DeviceIndex: "0"
       BlockDeviceMappings:
-        - DeviceName: /dev/sdm
-          Ebs:
-            VolumeType: gp2
-            DeleteOnTermination: false
-            VolumeSize: 20
+	- DeviceName: /dev/sdm
+	  Ebs:
+	    VolumeType: gp2
+	    DeleteOnTermination: false
+	    VolumeSize: 20

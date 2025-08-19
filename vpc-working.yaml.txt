@@ -1,0 +1,124 @@
+# Description of what this change includes
+# Revision number
+# Date
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Create a VPC named VPC-jorgoo5728 with 3 public subnets spanning 3 AZs in us-west-2.
+
+Parameters:
+  VpcCidr:
+    Type: String
+    Default: 10.50.0.0/16
+    Description: CIDR block for the VPC (must be /16 to comfortably carve three /24s).
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: VPC-jorgoo5728
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: VPC-jorgoo5728-igw
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: VPC-jorgoo5728-public-rt
+
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+    DependsOn: VPCGatewayAttachment
+
+  # Derive three /24 subnets from the VPC /16 using Fn::Cidr and spread them across 3 AZs in us-west-2.
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      MapPublicIpOnLaunch: true
+      CidrBlock: !Select [0, !Cidr [!Ref VpcCidr, 3, 8]]
+      AvailabilityZone: !Select [0, !GetAZs 'us-west-2']
+      Tags:
+        - Key: Name
+          Value: VPC-jorgoo5728-public-a
+
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      MapPublicIpOnLaunch: true
+      CidrBlock: !Select [1, !Cidr [!Ref VpcCidr, 3, 8]]
+      AvailabilityZone: !Select [1, !GetAZs 'us-west-2']
+      Tags:
+        - Key: Name
+          Value: VPC-jorgoo5728-public-b
+
+  PublicSubnetC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      MapPublicIpOnLaunch: true
+      CidrBlock: !Select [2, !Cidr [!Ref VpcCidr, 3, 8]]
+      AvailabilityZone: !Select [2, !GetAZs 'us-west-2']
+      Tags:
+        - Key: Name
+          Value: VPC-jorgoo5728-public-c
+
+  AssocPublicSubnetA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnetA
+
+  AssocPublicSubnetB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnetB
+
+  AssocPublicSubnetC:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnetC
+
+Outputs:
+  VpcId:
+    Description: ID of the created VPC
+    Value: !Ref VPC
+    Export:
+      Name: VPC-jorgoo5728-VpcId
+
+  PublicSubnetIds:
+    Description: Comma-separated list of the three public subnet IDs
+    Value: !Join [",", [!Ref PublicSubnetA, !Ref PublicSubnetB, !Ref PublicSubnetC]]
+
+  PublicSubnetAzs:
+    Description: AZs used for the public subnets (in us-west-2)
+    Value: !Join
+      - ","
+      - - !GetAtt PublicSubnetA.AvailabilityZone
+        - !GetAtt PublicSubnetB.AvailabilityZone
+        - !GetAtt PublicSubnetC.AvailabilityZone
